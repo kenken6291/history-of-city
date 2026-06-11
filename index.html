@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>「私の街の歴史」写真重ね合わせツール</title>
+
+<!-- Tailwind CSS (CDN) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Lucide Icons (CDN) -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<!-- Webフォント：明朝（見出し）＋ゴシック（本文） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+
+<script>
+  // Tailwind カスタムテーマ（落ち着いた地歴カラー：和紙ベージュ × 墨ブラウン × 藍ネイビー）
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          washi:   '#F3EDE2',  // 和紙ベージュ（背景）
+          washi2:  '#EAE1D0',  // 少し濃い和紙
+          sumi:    '#3B3128',  // 墨ブラウン（文字）
+          kakishibu:'#8C5A3A', // 柿渋ブラウン（アクセント）
+          ai:      '#2C3E55',  // 藍ネイビー（現在側）
+          aiLight: '#48617F',
+          kin:     '#B89B5E',  // 金茶（飾り）
+        },
+        fontFamily: {
+          mincho: ['"Shippori Mincho"', 'serif'],
+          gothic: ['"Zen Kaku Gothic New"', 'sans-serif'],
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  /* ===== 基本 ===== */
+  html { font-size: 16px; }
+  body {
+    font-family: "Zen Kaku Gothic New", sans-serif;
+    background-color: #F3EDE2;
+    background-image:
+      radial-gradient(rgba(140, 90, 58, 0.05) 1px, transparent 1px);
+    background-size: 22px 22px;
+    color: #3B3128;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .font-mincho { font-family: "Shippori Mincho", serif; }
+
+  /* シニアにも見やすいフォーカス表示 */
+  :focus-visible {
+    outline: 3px solid #8C5A3A;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* ===== モードタブ ===== */
+  .mode-tab {
+    transition: background-color .2s, color .2s, box-shadow .2s;
+  }
+  .mode-tab[aria-pressed="true"] {
+    background-color: #3B3128;
+    color: #F3EDE2;
+    box-shadow: 0 2px 6px rgba(59,49,40,.35);
+  }
+
+  /* ===== プリセットカード ===== */
+  .preset-card { transition: transform .15s, box-shadow .15s, border-color .15s; }
+  .preset-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(59,49,40,.18); }
+  .preset-card[aria-pressed="true"] { border-color: #8C5A3A; box-shadow: 0 0 0 3px rgba(140,90,58,.3); }
+
+  /* ===== ドロップゾーン ===== */
+  .dropzone.dragover {
+    border-color: #8C5A3A;
+    background-color: rgba(140, 90, 58, 0.08);
+  }
+
+  /* ===== 表示エリアの額縁風フレーム ===== */
+  .photo-frame {
+    border: 10px solid #4A3B2D;
+    box-shadow:
+      inset 0 0 0 2px #B89B5E,
+      0 10px 28px rgba(59,49,40,.35);
+    background: #1d1812;
+  }
+  @media (max-width: 640px) {
+    .photo-frame { border-width: 6px; }
+  }
+
+  /* ===== ビューア共通 ===== */
+  .viewer-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: #1d1812;
+    touch-action: none; /* スワイプ操作をJSで制御 */
+  }
+  @media (min-width: 1024px) {
+    .viewer-stage { aspect-ratio: 16 / 10; }
+  }
+  .viewer-layer {
+    position: absolute;
+    inset: 0;
+  }
+  .viewer-layer img,
+  .viewer-layer iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  .viewer-layer img { object-fit: cover; }
+
+  /* 古写真にうっすらセピアの質感を付与 */
+  .old-photo-tone img { filter: sepia(.25) contrast(1.02); }
+
+  /* ===== スワイプ用ハンドル ===== */
+  .swipe-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #F3EDE2;
+    box-shadow: 0 0 8px rgba(0,0,0,.5);
+    cursor: ew-resize;
+    z-index: 30;
+    transform: translateX(-50%);
+  }
+  .swipe-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border-radius: 9999px;
+    background: #F3EDE2;
+    border: 3px solid #8C5A3A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.45);
+    color: #8C5A3A;
+  }
+
+  /* ラベル（古写真／現在） */
+  .layer-badge {
+    position: absolute;
+    top: 10px;
+    z-index: 25;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    border-radius: 9999px;
+    color: #F3EDE2;
+    pointer-events: none;
+    font-family: "Shippori Mincho", serif;
+  }
+  .badge-old { left: 10px; background: rgba(140,90,58,.92); }
+  .badge-now { right: 10px; background: rgba(44,62,85,.92); }
+
+  /* iframe 操作ガード（透明オーバーレイ） */
+  .iframe-guard {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: transparent;
+  }
+  .iframe-guard.released { pointer-events: none; }
+
+  /* 空状態 */
+  .empty-state { color: #B89B5E; }
+
+  /* 透過スライダーの見た目 */
+  input[type="range"].opacity-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 10px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, #8C5A3A, #2C3E55);
+    outline-offset: 4px;
+  }
+  input[type="range"].opacity-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 32px; height: 32px;
+    border-radius: 9999px;
+    background: #F3EDE2;
+    border: 3px solid #3B3128;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    cursor: pointer;
+  }
+  input[type="range"].opacity-slider::-moz-range-thumb {
+    width: 32px; height: 32px;
+    border-radius: 9999px;
+    background: #F3EDE2;
+    border: 3px solid #3B3128;
+    box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    cursor: pointer;
+  }
+
+  /* モーション低減設定の尊重 */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+
+<body class="min-h-screen">
+
+<!-- ===== ヘッダー ===== -->
+<header class="bg-sumi text-washi border-b-4 border-kin">
+  <div class="max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center gap-3">
+    <i data-lucide="landmark" class="w-8 h-8 sm:w-9 sm:h-9 text-kin shrink-0"></i>
+    <div>
+      <h1 class="font-mincho text-xl sm:text-2xl lg:text-3xl font-bold tracking-wide leading-tight">
+        「私の街の歴史」<span class="whitespace-nowrap">写真重ね合わせツール</span>
+      </h1>
+      <p class="text-xs sm:text-sm text-washi/70 mt-1">
+        昔の写真と現在の風景をくらべて、街の移り変わりを楽しむアプリです
+      </p>
+    </div>
+  </div>
+</header>
+
+<!-- ===== メイン（PC: 左サイドバー＋右ビューア / スマホ: 縦積み） ===== -->
+<main class="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:flex lg:gap-6 lg:items-start">
+
+  <!-- ============ ① コントロールパネル ============ -->
+  <aside class="lg:w-[380px] lg:shrink-0 space-y-4">
+
+    <!-- --- 古い写真の選択 --- -->
+    <section class="bg-white/70 backdrop-blur rounded-xl border border-washi2 shadow-sm p-4 sm:p-5">
+      <h2 class="font-mincho text-lg font-bold flex items-center gap-2 mb-3">
+        <i data-lucide="image" class="w-5 h-5 text-kakishibu"></i>
+        手順1：昔の写真をえらぶ
+      </h2>
+
+      <p class="text-sm text-sumi/70 mb-2">サンプルから選ぶ：</p>
+      <div class="grid grid-cols-3 gap-2 mb-4" id="presetList">
+        <!-- プリセット（ダミー画像URL） -->
+        <button type="button" class="preset-card rounded-lg overflow-hidden border-2 border-washi2 bg-washi text-left"
+                data-src="https://picsum.photos/seed/showa-station/1200/900?grayscale"
+                data-name="昭和30年代の中央駅前" aria-pressed="false">
+          <img src="https://picsum.photos/seed/showa-station/300/220?grayscale" alt="" class="w-full h-16 sm:h-20 object-cover" loading="lazy">
+          <span class="block text-[11px] sm:text-xs font-bold p-1.5 leading-tight">昭和30年代の<br>中央駅前</span>
+        </button>
+        <button type="button" class="preset-card rounded-lg overflow-hidden border-2 border-washi2 bg-washi text-left"
+                data-src="https://picsum.photos/seed/taisho-street/1200/900?grayscale"
+                data-name="大正時代の本町通り" aria-pressed="false">
+          <img src="https://picsum.photos/seed/taisho-street/300/220?grayscale" alt="" class="w-full h-16 sm:h-20 object-cover" loading="lazy">
+          <span class="block text-[11px] sm:text-xs font-bold p-1.5 leading-tight">大正時代の<br>本町通り</span>
+        </button>
+        <button type="button" class="preset-card rounded-lg overflow-hidden border-2 border-washi2 bg-washi text-left"
+                data-src="https://picsum.photos/seed/meiji-bridge/1200/900?grayscale"
+                data-name="明治期の大橋とほとり" aria-pressed="false">
+          <img src="https://picsum.photos/seed/meiji-bridge/300/220?grayscale" alt="" class="w-full h-16 sm:h-20 object-cover" loading="lazy">
+          <span class="block text-[11px] sm:text-xs font-bold p-1.5 leading-tight">明治期の<br>大橋とほとり</span>
+        </button>
+      </div>
+
+      <p class="text-sm text-sumi/70 mb-2">または、お手元の写真を使う：</p>
+      <label id="oldDropzone"
+             class="dropzone block rounded-lg border-2 border-dashed border-kakishibu/50 bg-washi/60 p-4 text-center cursor-pointer">
+        <i data-lucide="upload" class="w-6 h-6 mx-auto text-kakishibu mb-1"></i>
+        <span class="block text-sm font-bold">タップして写真を選ぶ</span>
+        <span class="block text-xs text-sumi/60 mt-1">（パソコンならここにドラッグ＆ドロップでもOK）</span>
+        <input type="file" id="oldFileInput" accept="image/*" class="hidden">
+      </label>
+      <p id="oldStatus" class="text-xs mt-2 text-kakishibu font-bold min-h-[1rem]"></p>
+    </section>
+
+    <!-- --- 現在の風景の設定 --- -->
+    <section class="bg-white/70 backdrop-blur rounded-xl border border-washi2 shadow-sm p-4 sm:p-5">
+      <h2 class="font-mincho text-lg font-bold flex items-center gap-2 mb-3">
+        <i data-lucide="map-pin" class="w-5 h-5 text-ai"></i>
+        手順2：現在の風景を用意する
+      </h2>
+
+      <label for="svInput" class="block text-sm text-sumi/70 mb-1">
+        Googleストリートビューの「埋め込みコード（&lt;iframe&gt;…）」または共有URLを貼り付け：
+      </label>
+      <textarea id="svInput" rows="3"
+        class="w-full text-sm rounded-lg border border-washi2 bg-washi/60 p-2.5 focus:border-ai"
+        placeholder='例：<iframe src="https://www.google.com/maps/embed?pb=..."></iframe>'></textarea>
+      <button type="button" id="svApplyBtn"
+        class="mt-2 w-full bg-ai hover:bg-aiLight text-washi font-bold rounded-lg py-3 text-sm flex items-center justify-center gap-2">
+        <i data-lucide="check-circle" class="w-4 h-4"></i> ストリートビューを反映する
+      </button>
+
+      <div class="flex items-center gap-2 my-3 text-xs text-sumi/50">
+        <span class="flex-1 h-px bg-washi2"></span>ストリートビューがない場合<span class="flex-1 h-px bg-washi2"></span>
+      </div>
+
+      <label id="nowDropzone"
+             class="dropzone block rounded-lg border-2 border-dashed border-ai/50 bg-washi/60 p-3 text-center cursor-pointer mb-2">
+        <span class="text-sm font-bold flex items-center justify-center gap-2">
+          <i data-lucide="camera" class="w-4 h-4 text-ai"></i> 現在の写真をアップロード
+        </span>
+        <input type="file" id="nowFileInput" accept="image/*" class="hidden">
+      </label>
+
+      <div class="flex gap-2">
+        <input type="url" id="nowUrlInput" placeholder="または画像URLを入力"
+          class="flex-1 text-sm rounded-lg border border-washi2 bg-washi/60 px-2.5 py-2.5 min-w-0">
+        <button type="button" id="nowUrlBtn"
+          class="bg-sumi hover:bg-sumi/80 text-washi text-sm font-bold rounded-lg px-4 shrink-0">反映</button>
+      </div>
+      <p id="nowStatus" class="text-xs mt-2 text-ai font-bold min-h-[1rem]"></p>
+    </section>
+
+    <!-- --- 比較モード切り替え --- -->
+    <section class="bg-white/70 backdrop-blur rounded-xl border border-washi2 shadow-sm p-4 sm:p-5">
+      <h2 class="font-mincho text-lg font-bold flex items-center gap-2 mb-3">
+        <i data-lucide="layers" class="w-5 h-5 text-kakishibu"></i>
+        手順3：くらべ方をえらぶ
+      </h2>
+      <div class="grid grid-cols-3 gap-2" role="group" aria-label="比較モード">
+        <button type="button" class="mode-tab rounded-lg border-2 border-sumi/20 bg-washi py-3 px-1 text-center"
+                data-mode="side" aria-pressed="true">
+          <i data-lucide="columns-2" class="w-5 h-5 mx-auto mb-1"></i>
+          <span class="block text-xs font-bold leading-tight">並べて<br>比較</span>
+        </button>
+        <button type="button" class="mode-tab rounded-lg border-2 border-sumi/20 bg-washi py-3 px-1 text-center"
+                data-mode="swipe" aria-pressed="false">
+          <i data-lucide="move-horizontal" class="w-5 h-5 mx-auto mb-1"></i>
+          <span class="block text-xs font-bold leading-tight">スライダー<br>比較</span>
+        </button>
+        <button type="button" class="mode-tab rounded-lg border-2 border-sumi/20 bg-washi py-3 px-1 text-center"
+                data-mode="opacity" aria-pressed="false">
+          <i data-lucide="blend" class="w-5 h-5 mx-auto mb-1"></i>
+          <span class="block text-xs font-bold leading-tight">透過度<br>比較</span>
+        </button>
+      </div>
+
+      <!-- 透過度スライダー（透過モードのときだけ表示） -->
+      <div id="opacityControl" class="hidden mt-4">
+        <label for="opacityRange" class="block text-sm font-bold mb-1">
+          現在の写真の透明度：<span id="opacityValue" class="text-kakishibu">50</span>%
+        </label>
+        <input type="range" id="opacityRange" class="opacity-slider" min="0" max="100" value="50"
+               aria-label="現在の写真の不透明度">
+        <div class="flex justify-between text-xs text-sumi/60 mt-1">
+          <span>← 昔の写真だけ</span><span>現在だけ →</span>
+        </div>
+      </div>
+    </section>
+  </aside>
+
+  <!-- ============ ② メイン表示エリア ============ -->
+  <section class="mt-4 lg:mt-0 lg:flex-1 min-w-0">
+    <div class="photo-frame rounded-sm">
+      <div id="viewerRoot"></div>
+    </div>
+    <p id="viewerHint" class="text-center text-sm text-sumi/70 mt-3 font-bold"></p>
+  </section>
+</main>
+
+<footer class="text-center text-xs text-sumi/50 py-6 px-4">
+  写真はお使いの端末内だけで処理され、サーバーには送信されません。 ｜ 「私の街の歴史」写真重ね合わせツール
+</footer>
+
+<script>
+/* =========================================================
+   「私の街の歴史」写真重ね合わせツール
+   すべての処理はブラウザ内で完結します（GitHub Pages対応）
+   ========================================================= */
+(function () {
+  "use strict";
+
+  /* ---------- アプリの状態 ---------- */
+  const state = {
+    mode: "side",                      // side | swipe | opacity
+    oldSrc: null,                      // 古写真の画像URL
+    oldName: "",
+    now: null,                         // { type: "image" | "iframe", src: "..." }
+    swipeRatio: 0.5,                   // スワイプ位置（0〜1）
+    opacity: 0.5,                      // 現在側の不透明度（0〜1）
+    oldObjectUrl: null,                // 解放用
+    nowObjectUrl: null,
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const viewerRoot = $("#viewerRoot");
+  const viewerHint = $("#viewerHint");
+
+  /* ---------- ユーティリティ ---------- */
+
+  // ストリートビュー入力の解釈：<iframe>コード or URL
+  function parseStreetViewInput(text) {
+    const t = (text || "").trim();
+    if (!t) return null;
+
+    // iframeコードなら src を抽出
+    const m = t.match(/<iframe[^>]*\ssrc\s*=\s*["']([^"']+)["']/i);
+    if (m) return { type: "iframe", src: m[1] };
+
+    // URLそのまま
+    if (/^https?:\/\//i.test(t)) {
+      // 画像URLっぽい場合は画像として扱う
+      if (/\.(jpe?g|png|gif|webp|avif)(\?|#|$)/i.test(t)) {
+        return { type: "image", src: t };
+      }
+      return { type: "iframe", src: t };
+    }
+    return null;
+  }
+
+  function setOldImage(src, name, objectUrl) {
+    if (state.oldObjectUrl) URL.revokeObjectURL(state.oldObjectUrl);
+    state.oldObjectUrl = objectUrl || null;
+    state.oldSrc = src;
+    state.oldName = name || "";
+    $("#oldStatus").textContent = name ? `✔ 「${name}」を選択中` : "✔ 写真を読み込みました";
+    render();
+  }
+
+  function setNow(now, statusText, objectUrl) {
+    if (state.nowObjectUrl) URL.revokeObjectURL(state.nowObjectUrl);
+    state.nowObjectUrl = objectUrl || null;
+    state.now = now;
+    $("#nowStatus").textContent = statusText;
+    render();
+  }
+
+  /* ---------- HTML部品の生成 ---------- */
+
+  function oldLayerHTML() {
+    if (!state.oldSrc) {
+      return `<div class="viewer-layer flex flex-col items-center justify-center empty-state gap-2">
+                <i data-lucide="image-off" class="w-10 h-10"></i>
+                <p class="text-sm font-bold px-4 text-center">手順1で「昔の写真」を選んでください</p>
+              </div>`;
+    }
+    return `<div class="viewer-layer old-photo-tone">
+              <img src="${escapeAttr(state.oldSrc)}" alt="昔の写真${state.oldName ? "：" + escapeAttr(state.oldName) : ""}">
+            </div>`;
+  }
+
+  // needGuard: iframe上の操作を一時的にブロックする透明レイヤーが必要か
+  function nowLayerHTML(needGuard) {
+    if (!state.now) {
+      return `<div class="viewer-layer flex flex-col items-center justify-center empty-state gap-2 bg-ai/10">
+                <i data-lucide="map-pin-off" class="w-10 h-10"></i>
+                <p class="text-sm font-bold px-4 text-center">手順2で「現在の風景」を設定してください</p>
+              </div>`;
+    }
+    if (state.now.type === "image") {
+      return `<div class="viewer-layer"><img src="${escapeAttr(state.now.src)}" alt="現在の風景"></div>`;
+    }
+    // iframe（ストリートビュー）
+    const guard = needGuard
+      ? `<div class="iframe-guard" data-guard></div>`
+      : "";
+    return `<div class="viewer-layer">
+              <iframe src="${escapeAttr(state.now.src)}" loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                allowfullscreen title="現在のストリートビュー"></iframe>
+              ${guard}
+            </div>`;
+  }
+
+  function escapeAttr(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  /* ---------- 描画（モードごとにレイアウトを切替） ---------- */
+
+  function render() {
+    $("#opacityControl").classList.toggle("hidden", state.mode !== "opacity");
+
+    if (state.mode === "side") renderSideBySide();
+    else if (state.mode === "swipe") renderSwipe();
+    else renderOpacity();
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  /* --- 1. 並べて比較 --- */
+  function renderSideBySide() {
+    viewerRoot.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-2">
+        <div class="viewer-stage" style="aspect-ratio: 4/3;">
+          ${oldLayerHTML()}
+          <span class="layer-badge badge-old">昔の写真</span>
+        </div>
+        <div class="viewer-stage" style="aspect-ratio: 4/3;">
+          ${nowLayerHTML(false)}
+          <span class="layer-badge badge-now">現在</span>
+        </div>
+      </div>`;
+    viewerHint.textContent = "左が昔、右（スマホでは下）が現在の風景です。";
+  }
+
+  /* --- 2. スライダー（スワイプ）比較 --- */
+  function renderSwipe() {
+    viewerRoot.innerHTML = `
+      <div class="viewer-stage" id="swipeStage">
+        ${nowLayerHTML(true)}
+        <div id="swipeOldWrap" class="viewer-layer" style="z-index:10;">
+          ${state.oldSrc
+            ? `<div class="viewer-layer old-photo-tone"><img src="${escapeAttr(state.oldSrc)}" alt="昔の写真"></div>`
+            : oldLayerHTML()}
+        </div>
+        <span class="layer-badge badge-old">昔</span>
+        <span class="layer-badge badge-now">現在</span>
+        <div class="swipe-handle" id="swipeHandle" role="slider" tabindex="0"
+             aria-label="比較スライダー" aria-valuemin="0" aria-valuemax="100"
+             aria-valuenow="${Math.round(state.swipeRatio * 100)}">
+          <div class="swipe-knob">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </div>
+        </div>
+      </div>`;
+    viewerHint.textContent = "中央の丸いつまみを左右にドラッグ（指でスワイプ）すると、昔と現在が入れかわります。";
+
+    applySwipe();
+    setupSwipeEvents();
+  }
+
+  function applySwipe() {
+    const wrap = $("#swipeOldWrap");
+    const handle = $("#swipeHandle");
+    if (!wrap || !handle) return;
+    const pct = state.swipeRatio * 100;
+    // 古写真側を左から pct% だけ見せる
+    wrap.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    handle.style.left = pct + "%";
+    handle.setAttribute("aria-valuenow", String(Math.round(pct)));
+  }
+
+  function setupSwipeEvents() {
+    const stage = $("#swipeStage");
+    const handle = $("#swipeHandle");
+    if (!stage || !handle) return;
+    let dragging = false;
+
+    const moveTo = (clientX) => {
+      const rect = stage.getBoundingClientRect();
+      let r = (clientX - rect.left) / rect.width;
+      r = Math.max(0.02, Math.min(0.98, r));
+      state.swipeRatio = r;
+      applySwipe();
+    };
+
+    const onDown = (e) => {
+      dragging = true;
+      stage.setPointerCapture && e.pointerId !== undefined && stage.setPointerCapture(e.pointerId);
+      moveTo(e.clientX);
+      e.preventDefault();
+    };
+    const onMove = (e) => { if (dragging) { moveTo(e.clientX); e.preventDefault(); } };
+    const onUp = () => { dragging = false; };
+
+    stage.addEventListener("pointerdown", onDown);
+    stage.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+
+    // キーボード操作（アクセシビリティ）
+    handle.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft")  { state.swipeRatio = Math.max(0.02, state.swipeRatio - 0.05); applySwipe(); e.preventDefault(); }
+      if (e.key === "ArrowRight") { state.swipeRatio = Math.min(0.98, state.swipeRatio + 0.05); applySwipe(); e.preventDefault(); }
+    });
+  }
+
+  /* --- 3. 透過度比較 --- */
+  function renderOpacity() {
+    const isIframe = state.now && state.now.type === "iframe";
+    viewerRoot.innerHTML = `
+      <div class="viewer-stage">
+        ${state.oldSrc
+          ? `<div class="viewer-layer old-photo-tone"><img src="${escapeAttr(state.oldSrc)}" alt="昔の写真"></div>`
+          : oldLayerHTML()}
+        <div id="opacityNowWrap" class="viewer-layer" style="opacity:${state.opacity}; z-index:10;">
+          ${nowLayerHTML(true)}
+        </div>
+        <span class="layer-badge badge-old">昔（下）</span>
+        <span class="layer-badge badge-now">現在（上）</span>
+        ${isIframe ? `
+          <button type="button" id="guardToggle"
+            class="absolute bottom-3 right-3 z-40 bg-sumi/85 hover:bg-sumi text-washi text-xs font-bold rounded-full px-4 py-2.5 flex items-center gap-1.5 shadow-lg">
+            <i data-lucide="hand" class="w-4 h-4"></i><span id="guardToggleLabel">地図を操作する</span>
+          </button>` : ""}
+      </div>`;
+    viewerHint.textContent = "左のスライダー（手順3の下）で、現在の写真の透け具合を調整できます。";
+
+    // ストリートビューの操作モード切替（オーバーレイの解除/復帰）
+    const toggle = $("#guardToggle");
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        const guard = viewerRoot.querySelector("[data-guard]");
+        if (!guard) return;
+        const released = guard.classList.toggle("released");
+        $("#guardToggleLabel").textContent = released ? "操作を終える" : "地図を操作する";
+      });
+    }
+  }
+
+  /* ---------- イベント設定 ---------- */
+
+  // モード切替タブ
+  document.querySelectorAll(".mode-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".mode-tab").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      btn.setAttribute("aria-pressed", "true");
+      state.mode = btn.dataset.mode;
+      render();
+    });
+  });
+
+  // プリセット選択
+  document.querySelectorAll(".preset-card").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".preset-card").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      btn.setAttribute("aria-pressed", "true");
+      setOldImage(btn.dataset.src, btn.dataset.name, null);
+    });
+  });
+
+  // ファイル選択＆ドラッグ＆ドロップ（共通化）
+  function setupDropzone(zoneId, inputId, onFile) {
+    const zone = document.getElementById(zoneId);
+    const input = document.getElementById(inputId);
+
+    input.addEventListener("change", () => {
+      if (input.files && input.files[0]) onFile(input.files[0]);
+      input.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach((ev) =>
+      zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.add("dragover"); }));
+    ["dragleave", "drop"].forEach((ev) =>
+      zone.addEventListener(ev, (e) => { e.preventDefault(); zone.classList.remove("dragover"); }));
+    zone.addEventListener("drop", (e) => {
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f && f.type.startsWith("image/")) onFile(f);
+    });
+  }
+
+  setupDropzone("oldDropzone", "oldFileInput", (file) => {
+    const url = URL.createObjectURL(file); // サーバー送信なし・ブラウザ内のみ
+    document.querySelectorAll(".preset-card").forEach((b) => b.setAttribute("aria-pressed", "false"));
+    setOldImage(url, file.name, url);
+  });
+
+  setupDropzone("nowDropzone", "nowFileInput", (file) => {
+    const url = URL.createObjectURL(file);
+    setNow({ type: "image", src: url }, `✔ 現在の写真「${file.name}」を読み込みました`, url);
+  });
+
+  // ストリートビュー反映
+  $("#svApplyBtn").addEventListener("click", () => {
+    const parsed = parseStreetViewInput($("#svInput").value);
+    if (!parsed) {
+      $("#nowStatus").textContent = "⚠ 埋め込みコードまたはURLを確認してください（http から始まるURLが必要です）";
+      return;
+    }
+    setNow(parsed,
+      parsed.type === "iframe" ? "✔ ストリートビューを反映しました" : "✔ 画像URLを反映しました",
+      null);
+  });
+
+  // 現在の写真URL反映
+  $("#nowUrlBtn").addEventListener("click", () => {
+    const url = $("#nowUrlInput").value.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      $("#nowStatus").textContent = "⚠ http(s)から始まる画像URLを入力してください";
+      return;
+    }
+    setNow({ type: "image", src: url }, "✔ 画像URLを反映しました", null);
+  });
+
+  // 透過度スライダー
+  $("#opacityRange").addEventListener("input", (e) => {
+    state.opacity = Number(e.target.value) / 100;
+    $("#opacityValue").textContent = e.target.value;
+    const wrap = $("#opacityNowWrap");
+    if (wrap) wrap.style.opacity = state.opacity;
+  });
+
+  /* ---------- 初期表示 ---------- */
+  render();
+})();
+</script>
+</body>
+</html>
