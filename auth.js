@@ -8,7 +8,7 @@
 
 "use strict";
 
-const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwiNRMstR0cCHFGtuQ2vrCatH3eJkBoMpLgTsZO9LIKWl0xeRJS4jus19zFzTYMMudWdQ/exec"; // 例: https://script.google.com/macros/s/xxxxx/exec
+const API_BASE_URL = "https://script.google.com/macros/s/AKfycbwUQZXv3UUIiEf3yK8Mch1CcmeCiaDYsNT286P7UJSqqq1IhHwU1nLj-JN5esD-a7fPOg/exec"; // 例: https://script.google.com/macros/s/xxxxx/exec
 
 const LS_TOKEN = "hoc_token";
 const LS_NICKNAME = "hoc_nickname";
