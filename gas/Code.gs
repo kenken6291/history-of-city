@@ -5,7 +5,6 @@
  *   - スプレッドシート「Members」シート: 会員情報
  *   - スプレッドシート「Photos」シート  : 投稿された昔/現在写真ペアの記録
  *   - Google Drive フォルダ           : 実写真ファイル（昔写真・現在写真）
- *   - Gemini API                      : 昔写真と現在写真を比較し変化コメントを自動生成
  *
  * デプロイ: ウェブアプリとして公開（実行:自分／アクセス:全員）
  * doPost の action で処理を振り分けるシンプルなJSON APIです。
@@ -13,7 +12,7 @@
 
 // ==== 設定値（スクリプトプロパティから読み込み） ====
 // 「プロジェクトの設定」→「スクリプト プロパティ」に以下を登録しておくこと:
-//   SPREADSHEET_ID, DRIVE_FOLDER_ID, GEMINI_API_KEY, PEPPER
+//   SPREADSHEET_ID, DRIVE_FOLDER_ID, PEPPER
 function getProp_(key) {
   const value = PropertiesService.getScriptProperties().getProperty(key);
   if (!value) throw new Error(`スクリプトプロパティ「${key}」が未設定です`);
@@ -21,9 +20,7 @@ function getProp_(key) {
 }
 const SPREADSHEET_ID = () => getProp_('SPREADSHEET_ID');
 const DRIVE_FOLDER_ID = () => getProp_('DRIVE_FOLDER_ID');
-const GEMINI_API_KEY = () => getProp_('GEMINI_API_KEY');
 const PEPPER = () => getProp_('PEPPER');
-const GEMINI_MODEL = 'gemini-2.0-flash';
 const MEMBERS_SHEET = 'Members';
 const PHOTOS_SHEET = 'Photos';
 
@@ -213,23 +210,20 @@ function uploadPhotoPair(params) {
   oldFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-  const oldPhotoUrl = `https://drive.google.com/uc?export=view&id=${oldFile.getId()}`;
-  const newPhotoUrl = `https://drive.google.com/uc?export=view&id=${newFile.getId()}`;
-
-  const caption = generateCaptionWithGemini_(params.oldPhotoBase64, params.newPhotoBase64, params.locationName);
+  const oldPhotoUrl = `https://drive.google.com/thumbnail?id=${oldFile.getId()}&sz=w2000`;
+  const newPhotoUrl = `https://drive.google.com/thumbnail?id=${newFile.getId()}&sz=w2000`;
 
   const photoSheet = getSheet_(PHOTOS_SHEET);
   photoSheet.appendRow([
     photoId, params.email, nickname, params.locationName,
-    oldPhotoUrl, newPhotoUrl, caption, params.userComment || '', new Date()
+    oldPhotoUrl, newPhotoUrl, '', params.userComment || '', new Date()
   ]);
 
   return {
     success: true,
     photoId: photoId,
     oldPhotoUrl: oldPhotoUrl,
-    newPhotoUrl: newPhotoUrl,
-    caption: caption
+    newPhotoUrl: newPhotoUrl
   };
 }
 
@@ -237,39 +231,6 @@ function saveBase64Image_(folder, base64Data, filename) {
   const clean = base64Data.replace(/^data:image\/\w+;base64,/, '');
   const blob = Utilities.newBlob(Utilities.base64Decode(clean), 'image/jpeg', filename);
   return folder.createFile(blob);
-}
-
-function generateCaptionWithGemini_(oldBase64, newBase64, locationName) {
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY()}`;
-    const cleanOld = oldBase64.replace(/^data:image\/\w+;base64,/, '');
-    const cleanNew = newBase64.replace(/^data:image\/\w+;base64,/, '');
-
-    const payload = {
-      contents: [{
-        parts: [
-          { text: `これは「${locationName}」の昔の写真と現在の写真です。何がどう変わったかを、日本語で1〜2文の親しみやすいキャプションとして書いてください。断定しすぎず、観察できる変化を中心に述べてください。` },
-          { inline_data: { mime_type: 'image/jpeg', data: cleanOld } },
-          { inline_data: { mime_type: 'image/jpeg', data: cleanNew } }
-        ]
-      }]
-    };
-
-    const response = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
-    const json = JSON.parse(response.getContentText());
-    const text = json.candidates && json.candidates[0] && json.candidates[0].content
-      ? json.candidates[0].content.parts[0].text
-      : '';
-    return text || '変化のコメントを生成できませんでした。';
-  } catch (err) {
-    return '変化のコメントを生成できませんでした。';
-  }
 }
 
 function listPhotos() {

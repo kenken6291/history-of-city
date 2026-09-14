@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>私の街の歴史 - 写真重ね合わせ</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -39,6 +41,13 @@
         <input type="text" id="locationName" placeholder="例：〇〇商店街、△△駅前" required>
       </label>
       <label>
+        地図で場所を選択（クリックでピン留め）
+        <div id="locationPicker" style="height:260px; border:1px solid var(--line);"></div>
+        <span id="pickedLocationText" style="font-size:0.78rem; color:#5c5648;">未選択</span>
+        <input type="hidden" id="latitudeInput">
+        <input type="hidden" id="longitudeInput">
+      </label>
+      <label>
         昔の写真
         <input type="file" id="oldPhotoInput" accept="image/*" required>
       </label>
@@ -53,6 +62,11 @@
       <button type="submit" class="btn btn--past" id="uploadSubmitBtn">投稿する（要ログイン）</button>
       <p class="modal-msg" id="uploadMsg"></p>
     </form>
+  </section>
+
+  <section id="mapSection">
+    <h2 class="section-title">投稿マップ</h2>
+    <div id="photoMap" style="height:360px; border:1px solid var(--ink);"></div>
   </section>
 
   <section id="gallerySection">
