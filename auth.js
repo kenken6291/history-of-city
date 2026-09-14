@@ -17,11 +17,21 @@ const Session = {
 
 // ==== API呼び出し ====
 async function callApi(action, params) {
-  const res = await fetch(GAS_API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...params })
-  });
-  return res.json();
+  try {
+    const res = await fetch(GAS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...params })
+    });
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (parseErr) {
+      // GASからJSON以外（HTMLエラーページなど）が返ってきた場合
+      return { success: false, message: `通信エラー：サーバーから予期しない応答がありました。\n${text.substring(0, 200)}` };
+    }
+  } catch (networkErr) {
+    return { success: false, message: `通信エラー：${networkErr.message}` };
+  }
 }
 
 // ==== モーダル制御 ====

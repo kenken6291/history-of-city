@@ -213,19 +213,22 @@ function uploadPhotoPair(params) {
   oldFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
+  const oldPhotoUrl = `https://drive.google.com/uc?export=view&id=${oldFile.getId()}`;
+  const newPhotoUrl = `https://drive.google.com/uc?export=view&id=${newFile.getId()}`;
+
   const caption = generateCaptionWithGemini_(params.oldPhotoBase64, params.newPhotoBase64, params.locationName);
 
   const photoSheet = getSheet_(PHOTOS_SHEET);
   photoSheet.appendRow([
     photoId, params.email, nickname, params.locationName,
-    oldFile.getUrl(), newFile.getUrl(), caption, params.userComment || '', new Date()
+    oldPhotoUrl, newPhotoUrl, caption, params.userComment || '', new Date()
   ]);
 
   return {
     success: true,
     photoId: photoId,
-    oldPhotoUrl: `https://drive.google.com/uc?id=${oldFile.getId()}`,
-    newPhotoUrl: `https://drive.google.com/uc?id=${newFile.getId()}`,
+    oldPhotoUrl: oldPhotoUrl,
+    newPhotoUrl: newPhotoUrl,
     caption: caption
   };
 }
