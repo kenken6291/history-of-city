@@ -28,22 +28,26 @@ function setPickedLocation(lat, lng) {
 }
 
 // ==== 投稿マップ（ギャラリー上部） ====
-let photoMap;
+let photoMap, photoMarkersLayer;
 
 function initPhotoMap() {
   photoMap = L.map('photoMap').setView(DEFAULT_MAP_CENTER, 12);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(photoMap);
+  photoMarkersLayer = L.layerGroup().addTo(photoMap);
 }
 
 function plotPhotoMarkers(photos) {
+  photoMarkersLayer.clearLayers();
+
   const withLocation = photos.filter(p => p.latitude && p.longitude);
   if (withLocation.length === 0) return;
 
   withLocation.forEach(photo => {
-    const marker = L.marker([Number(photo.latitude), Number(photo.longitude)]).addTo(photoMap);
+    const marker = L.marker([Number(photo.latitude), Number(photo.longitude)]);
     marker.bindPopup(`<strong>${escapeHtml(photo.locationName)}</strong><br><a href="#photo-${photo.photoId}">写真を見る</a>`);
+    photoMarkersLayer.addLayer(marker);
   });
 
   const bounds = L.latLngBounds(withLocation.map(p => [Number(p.latitude), Number(p.longitude)]));
@@ -130,7 +134,7 @@ function renderGalleryItem(container, photo) {
     delBtn.addEventListener('click', async () => {
       if (!confirm('この投稿を削除しますか？')) return;
       const res = await callApi('deletePhoto', { email: session.email, photoId: photo.photoId });
-      if (res.success) item.remove();
+      if (res.success) loadGallery();
     });
     meta.appendChild(delBtn);
   }
