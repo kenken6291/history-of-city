@@ -61,6 +61,24 @@ function bindTopBarLinks() {
 document.addEventListener('DOMContentLoaded', () => {
   refreshMemberBar();
 
+  // ヘッダー半分クリックでスクロール
+  document.querySelectorAll('[data-scroll-target]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.scrollTarget);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // パスワード表示/非表示切替
+  document.querySelectorAll('.password-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.target);
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      btn.textContent = isHidden ? '隠す' : '表示';
+    });
+  });
+
   document.getElementById('closeLoginLink').addEventListener('click', () => closeModal('loginModal'));
   document.getElementById('closeRegisterLink').addEventListener('click', () => closeModal('registerModal'));
   document.getElementById('closeReissueLink').addEventListener('click', () => closeModal('reissueModal'));

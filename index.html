@@ -10,18 +10,18 @@
 <body>
 
 <header class="site-header">
-  <div class="site-header__half site-header__half--past">
+  <button type="button" class="site-header__half site-header__half--past" data-scroll-target="uploadSection">
     <div>
       <p class="site-header__title">私の街の歴史</p>
       <p class="site-header__sub">昔の写真 × 今の風景</p>
     </div>
-  </div>
-  <div class="site-header__half site-header__half--now">
+  </button>
+  <button type="button" class="site-header__half site-header__half--now" data-scroll-target="gallerySection">
     <div>
       <p class="site-header__title" style="visibility:hidden;">私の街の歴史</p>
       <p class="site-header__sub">スライダーで見比べる、まちの変化</p>
     </div>
-  </div>
+  </button>
 </header>
 
 <div class="member-bar" id="memberBar">
@@ -67,7 +67,12 @@
   <div class="modal-box">
     <h2>ログイン</h2>
     <label>メールアドレス<input type="text" id="loginEmail"></label>
-    <label>パスワード<input type="password" id="loginPassword"></label>
+    <label>パスワード
+      <span class="password-field">
+        <input type="password" id="loginPassword">
+        <button type="button" class="password-toggle" data-target="loginPassword">表示</button>
+      </span>
+    </label>
     <button class="btn btn--now" id="loginSubmitBtn">ログイン</button>
     <p class="modal-msg" id="loginMsg"></p>
     <div class="modal-links">
@@ -95,7 +100,12 @@
   <div class="modal-box">
     <h2>初回ログイン：パスワード変更</h2>
     <p style="font-size:0.82rem;">仮パスワードでのログインです。新しいパスワードを設定してください。</p>
-    <label>新しいパスワード<input type="password" id="newPasswordInput"></label>
+    <label>新しいパスワード
+      <span class="password-field">
+        <input type="password" id="newPasswordInput">
+        <button type="button" class="password-toggle" data-target="newPasswordInput">表示</button>
+      </span>
+    </label>
     <button class="btn btn--now" id="forceChangeSubmitBtn">変更する</button>
     <p class="modal-msg" id="forceChangeMsg"></p>
   </div>

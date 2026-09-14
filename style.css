@@ -34,6 +34,17 @@ body {
   display: flex;
   align-items: center;
   padding: 20px 32px;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  transition: filter 0.15s ease;
+}
+.site-header__half:hover {
+  filter: brightness(1.08);
+}
+.site-header__half:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: -6px;
 }
 .site-header__half--past {
   background: var(--sepia);
@@ -263,6 +274,27 @@ section { margin-bottom: 56px; }
   border: 1px solid var(--line);
   padding: 8px 10px;
   background: #fff;
+}
+.password-field {
+  display: flex;
+  gap: 8px;
+}
+.password-field input {
+  flex: 1;
+  min-width: 0;
+}
+.password-toggle {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  padding: 0 12px;
+  cursor: pointer;
+}
+.password-toggle:hover {
+  background: var(--paper-dark);
 }
 .modal-box .modal-links {
   display: flex;
