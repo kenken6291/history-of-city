@@ -11,10 +11,18 @@
  * doPost の action で処理を振り分けるシンプルなJSON APIです。
  */
 
-// ==== 設定値（要変更） ====
-const SPREADSHEET_ID = 'YOUR_SPREADSHEET_ID';       // MembersシートとPhotosシートを持つスプレッドシートID
-const DRIVE_FOLDER_ID = 'YOUR_DRIVE_FOLDER_ID';      // 写真保存先のDriveフォルダID
-const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';        // Gemini APIキー（スクリプトプロパティ推奨）
+// ==== 設定値（スクリプトプロパティから読み込み） ====
+// 「プロジェクトの設定」→「スクリプト プロパティ」に以下を登録しておくこと:
+//   SPREADSHEET_ID, DRIVE_FOLDER_ID, GEMINI_API_KEY, PEPPER
+function getProp_(key) {
+  const value = PropertiesService.getScriptProperties().getProperty(key);
+  if (!value) throw new Error(`スクリプトプロパティ「${key}」が未設定です`);
+  return value;
+}
+const SPREADSHEET_ID = () => getProp_('SPREADSHEET_ID');
+const DRIVE_FOLDER_ID = () => getProp_('DRIVE_FOLDER_ID');
+const GEMINI_API_KEY = () => getProp_('GEMINI_API_KEY');
+const PEPPER = () => getProp_('PEPPER');
 const GEMINI_MODEL = 'gemini-2.0-flash';
 const MEMBERS_SHEET = 'Members';
 const PHOTOS_SHEET = 'Photos';
@@ -65,7 +73,7 @@ function doGet(e) {
 // ==== 会員機能（いつものパターン） ====
 
 function getSheet_(name) {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID());
   let sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -79,7 +87,7 @@ function getSheet_(name) {
 }
 
 function hashPassword_(password) {
-  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password);
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, password + PEPPER());
   return digest.map(b => (b < 0 ? b + 256 : b).toString(16).padStart(2, '0')).join('');
 }
 
@@ -197,7 +205,7 @@ function uploadPhotoPair(params) {
   if (!memberFound) return { success: false, message: '会員が見つかりません' };
   const nickname = memberFound.row[1];
 
-  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+  const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID());
   const photoId = Utilities.getUuid();
 
   const oldFile = saveBase64Image_(folder, params.oldPhotoBase64, `${photoId}_old.jpg`);
@@ -230,7 +238,7 @@ function saveBase64Image_(folder, base64Data, filename) {
 
 function generateCaptionWithGemini_(oldBase64, newBase64, locationName) {
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY()}`;
     const cleanOld = oldBase64.replace(/^data:image\/\w+;base64,/, '');
     const cleanNew = newBase64.replace(/^data:image\/\w+;base64,/, '');
 
