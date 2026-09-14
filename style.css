@@ -1,0 +1,288 @@
+:root {
+  --paper: #ECE6D8;
+  --paper-dark: #DDD3BC;
+  --ink: #2A241C;
+  --sepia: #8C5A32;
+  --sepia-dark: #6B4423;
+  --now-teal: #2F5C56;
+  --now-teal-dark: #1F413C;
+  --line: #C9BC9E;
+  --danger: #A13D2E;
+  --font-display: 'Shippori Mincho', 'Noto Serif JP', serif;
+  --font-body: 'Zen Kaku Gothic New', 'Noto Sans JP', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.7;
+}
+
+/* ==== ヘッダー：昔/今が中央で出会う帯 ==== */
+.site-header {
+  display: flex;
+  align-items: stretch;
+  min-height: 120px;
+  border-bottom: 3px solid var(--ink);
+}
+.site-header__half {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 20px 32px;
+}
+.site-header__half--past {
+  background: var(--sepia);
+  color: #F5EEE0;
+  justify-content: flex-end;
+  text-align: right;
+}
+.site-header__half--now {
+  background: var(--now-teal);
+  color: #EAF3F1;
+  justify-content: flex-start;
+}
+.site-header__title {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+.site-header__sub {
+  font-size: 0.8rem;
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+/* ==== 会員バー ==== */
+.member-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--paper-dark);
+  border-bottom: 1px solid var(--line);
+  font-size: 0.85rem;
+}
+.member-bar button, .member-bar span {
+  background: none;
+  border: none;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  text-decoration: underline;
+  padding: 0;
+}
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+section { margin-bottom: 56px; }
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  border-left: 6px solid var(--sepia);
+  padding-left: 14px;
+  margin-bottom: 20px;
+}
+
+/* ==== 重ね合わせビューア ==== */
+.compare-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  background: #cfcabb;
+  user-select: none;
+}
+.compare-wrap img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+.compare-wrap .layer-old { z-index: 1; }
+.compare-wrap .layer-new {
+  z-index: 2;
+  clip-path: inset(0 50% 0 0);
+}
+.compare-slider {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  z-index: 3;
+  cursor: ew-resize;
+}
+.compare-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 4px;
+  height: 100%;
+  background: var(--ink);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+.compare-label {
+  position: absolute;
+  bottom: 8px;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  background: rgba(42,36,28,0.75);
+  color: #fff;
+  z-index: 4;
+  letter-spacing: 0.05em;
+}
+.compare-label--old { left: 8px; }
+.compare-label--new { right: 8px; }
+
+.caption-box {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+}
+.caption-box .caption-heading {
+  font-size: 0.72rem;
+  color: var(--sepia-dark);
+  margin-bottom: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* ==== 投稿フォーム ==== */
+.upload-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 20px;
+}
+.upload-form label {
+  font-size: 0.82rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.upload-form input[type="text"],
+.upload-form textarea {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  background: var(--paper);
+}
+.upload-form input[type="file"] { font-size: 0.85rem; }
+.upload-form textarea { resize: vertical; min-height: 60px; }
+
+.btn {
+  border: none;
+  padding: 10px 22px;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  cursor: pointer;
+  align-self: flex-start;
+}
+.btn--past { background: var(--sepia); color: #fff; }
+.btn--past:hover { background: var(--sepia-dark); }
+.btn--now { background: var(--now-teal); color: #fff; }
+.btn--now:hover { background: var(--now-teal-dark); }
+.btn--ghost {
+  background: none;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+}
+
+/* ==== ギャラリー ==== */
+.gallery-item {
+  border-bottom: 1px solid var(--line);
+  padding: 28px 0;
+}
+.gallery-item__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: #5c5648;
+  margin-top: 8px;
+}
+.gallery-item__delete {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.78rem;
+}
+
+/* ==== 会員モーダル ==== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(42,36,28,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  max-width: 380px;
+  width: 100%;
+  padding: 28px 24px;
+}
+.modal-box h2 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  margin-top: 0;
+}
+.modal-box label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  margin-bottom: 14px;
+}
+.modal-box input {
+  border: 1px solid var(--line);
+  padding: 8px 10px;
+  background: #fff;
+}
+.modal-box .modal-links {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  margin-top: 10px;
+}
+.modal-box .modal-links a {
+  color: var(--sepia-dark);
+  cursor: pointer;
+}
+.modal-msg {
+  font-size: 0.8rem;
+  margin-top: 10px;
+  min-height: 1.2em;
+}
+.modal-msg.error { color: var(--danger); }
+.modal-msg.ok { color: var(--now-teal-dark); }
+
+@media (max-width: 560px) {
+  .site-header { flex-direction: column; min-height: 0; }
+  .site-header__half { justify-content: center !important; text-align: center !important; padding: 16px; }
+}
