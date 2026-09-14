@@ -292,9 +292,222 @@ footer.site{
   .btn{ width:100%; text-align:center; }
   .btn-row .help-link{ width:100%; text-align:center; }
 }
+
+/* ============================================================
+   会員登録・ログイン（会員認証まわり）
+   ============================================================ */
+.btn-amber{ background:var(--vermilion); border-color:var(--vermilion); color:#fffdf7; }
+.btn-moss{ background:var(--teal); border-color:var(--teal); color:#fffdf7; }
+.btn-block{ width:100%; display:block; text-align:center; }
+.btn-small{ padding:5px 14px; font-size:.82rem; }
+.btn-danger-text{ color:var(--vermilion); border-color:var(--vermilion); }
+
+.auth-overlay{
+  position:fixed; inset:0; z-index:200;
+  display:flex; align-items:center; justify-content:center;
+  padding:20px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(43,33,24,.035) 31px 32px),
+    var(--paper);
+  overflow-y:auto;
+}
+.auth-card{
+  width:100%; max-width:420px;
+  background:#fffdf7; border:2px solid var(--ink); border-radius:14px;
+  box-shadow:0 8px 0 rgba(43,33,24,.25);
+  padding:28px 24px 24px;
+}
+.auth-title{
+  font-family:var(--font-display); text-align:center;
+  font-size:1.25rem; letter-spacing:.06em; margin:0 0 6px; line-height:1.5;
+}
+.auth-subtitle{
+  text-align:center; color:#5d5142; font-size:.85rem;
+  margin:0 0 20px; padding-bottom:16px; border-bottom:3px double var(--line);
+}
+.auth-panel-title{
+  font-family:var(--font-display); font-size:1.05rem;
+  margin:0 0 14px; letter-spacing:.04em;
+}
+.auth-panel .form-label{
+  display:block; font-weight:700; font-size:.88rem; margin-bottom:14px;
+}
+.auth-panel .form-label input{
+  display:block; width:100%; margin-top:6px;
+  font-family:var(--font-body); font-size:.95rem;
+  border:1px solid var(--line); border-radius:8px;
+  padding:10px 12px; background:#fffdf7; color:var(--ink);
+}
+.auth-panel .form-label input:focus-visible{ outline:3px solid var(--teal); outline-offset:1px; }
+.password-row{ display:flex; gap:8px; align-items:center; }
+.password-row input{ flex:1; }
+.auth-error{
+  font-size:.85rem; margin:0 0 12px; padding:8px 12px; border-radius:8px;
+  background:rgba(200,71,46,.08); border:1px solid var(--vermilion); color:var(--ink);
+}
+.auth-message{ font-size:.9rem; margin:0 0 18px; color:#5d5142; }
+.auth-links{
+  margin-top:16px; display:flex; flex-direction:column; gap:8px;
+  text-align:center; font-size:.85rem;
+}
+.auth-links a{ color:var(--teal); text-decoration:underline; text-underline-offset:3px; }
+
+.account-bar{
+  display:flex; align-items:center; justify-content:flex-end; gap:12px;
+  max-width:980px; margin:0 auto; padding:10px 16px 0;
+  font-size:.85rem; color:#5d5142;
+}
+.account-nickname{ font-weight:700; }
+
+.modal-overlay{
+  position:fixed; inset:0; z-index:150;
+  background:rgba(43,33,24,.55);
+  display:flex; align-items:center; justify-content:center; padding:16px;
+}
+.modal-overlay .modal{
+  position:relative; max-width:420px;
+}
+.modal-overlay .modal h3{
+  font-family:var(--font-display); margin:0 0 16px;
+  font-size:1.1rem; letter-spacing:.04em;
+  border-bottom:3px double var(--line); padding-bottom:10px;
+}
+.modal-overlay .form-label{
+  display:block; font-weight:700; font-size:.88rem; margin-bottom:14px;
+}
+.modal-overlay .form-label input{
+  display:block; width:100%; margin-top:6px;
+  font-family:var(--font-body); font-size:.95rem;
+  border:1px solid var(--line); border-radius:8px;
+  padding:10px 12px; background:#fffdf7; color:var(--ink);
+}
+.settings-divider{ border:none; border-top:1px dashed var(--line); margin:18px 0; }
+.modal-overlay .btn-block + .btn-block{ margin-top:10px; }
+
+.toast{
+  position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+  z-index:300; background:var(--ink); color:var(--paper);
+  padding:10px 20px; border-radius:999px; font-size:.85rem;
+  box-shadow:var(--shadow);
+}
 </style>
 </head>
 <body>
+
+<!-- ================= 会員認証（ログイン/登録） ================= -->
+<div id="auth-overlay" class="auth-overlay" hidden>
+  <div class="auth-card">
+    <h1 class="auth-title">「私の街の歴史」<br>写真重ね合わせツール</h1>
+    <p class="auth-subtitle">昔の写真と現在の風景をくらべて、街の移り変わりを楽しむアプリです</p>
+
+    <!-- ---------- ログイン ---------- -->
+    <div id="auth-panel-login" class="auth-panel">
+      <h2 class="auth-panel-title">ログイン</h2>
+      <p id="auth-error-login" class="auth-error" hidden></p>
+      <form id="form-login">
+        <label class="form-label">
+          メールアドレス
+          <input type="email" id="login-email" required autocomplete="email">
+        </label>
+        <label class="form-label">
+          パスワード
+          <div class="password-row">
+            <input type="password" id="login-password" required autocomplete="current-password">
+            <button type="button" id="toggle-login-password" class="btn btn-ghost btn-small">👁 表示</button>
+          </div>
+        </label>
+        <button type="submit" id="btn-login" class="btn btn-amber btn-block">ログイン</button>
+      </form>
+      <div class="auth-links">
+        <a href="#" id="link-to-forgot">パスワードを忘れた方はこちら</a>
+        <a href="#" id="link-to-register">はじめての方はこちら（新規登録）</a>
+      </div>
+    </div>
+
+    <!-- ---------- 新規登録 ---------- -->
+    <div id="auth-panel-register" class="auth-panel" hidden>
+      <h2 class="auth-panel-title">新規登録</h2>
+      <p id="auth-error-register" class="auth-error" hidden></p>
+      <form id="form-register">
+        <label class="form-label">
+          メールアドレス
+          <input type="email" id="register-email" required autocomplete="email">
+        </label>
+        <label class="form-label">
+          ニックネーム
+          <input type="text" id="register-nickname" required maxlength="20">
+        </label>
+        <p class="hint">登録すると、ご入力のメールアドレス宛に仮パスワードをお送りします。</p>
+        <button type="submit" id="btn-register" class="btn btn-amber btn-block">登録する</button>
+      </form>
+      <div class="auth-links">
+        <a href="#" id="link-to-login-from-register">ログイン画面へ戻る</a>
+      </div>
+    </div>
+
+    <!-- ---------- 登録完了 ---------- -->
+    <div id="auth-panel-register-done" class="auth-panel" hidden>
+      <h2 class="auth-panel-title">登録を受け付けました</h2>
+      <p id="register-done-message" class="auth-message"></p>
+      <button id="btn-register-done-ok" class="btn btn-amber btn-block">ログイン画面へ</button>
+    </div>
+
+    <!-- ---------- パスワードを忘れた方 ---------- -->
+    <div id="auth-panel-forgot" class="auth-panel" hidden>
+      <h2 class="auth-panel-title">パスワード再発行</h2>
+      <p id="auth-error-forgot" class="auth-error" hidden></p>
+      <form id="form-forgot">
+        <label class="form-label">
+          登録済みのメールアドレス
+          <input type="email" id="forgot-email" required autocomplete="email">
+        </label>
+        <button type="submit" id="btn-forgot" class="btn btn-amber btn-block">仮パスワードを送信</button>
+      </form>
+      <div class="auth-links">
+        <a href="#" id="link-to-login-from-forgot">ログイン画面へ戻る</a>
+      </div>
+    </div>
+
+    <!-- ---------- 再発行完了 ---------- -->
+    <div id="auth-panel-forgot-done" class="auth-panel" hidden>
+      <h2 class="auth-panel-title">送信しました</h2>
+      <p id="forgot-done-message" class="auth-message"></p>
+      <button id="btn-forgot-done-ok" class="btn btn-amber btn-block">ログイン画面へ</button>
+    </div>
+
+    <!-- ---------- 初回ログイン：パスワード変更（必須） ---------- -->
+    <div id="auth-panel-force-change" class="auth-panel" hidden>
+      <h2 class="auth-panel-title">新しいパスワードを設定してください</h2>
+      <p class="hint">仮パスワードでのログインが確認できました。安全のため、ご自身のパスワードに変更してください（8文字以上）。</p>
+      <p id="auth-error-force-change" class="auth-error" hidden></p>
+      <form id="form-force-change">
+        <label class="form-label">
+          新しいパスワード
+          <div class="password-row">
+            <input type="password" id="force-change-password" required minlength="8" autocomplete="new-password">
+            <button type="button" id="toggle-force-change-password" class="btn btn-ghost btn-small">👁 表示</button>
+          </div>
+        </label>
+        <label class="form-label">
+          新しいパスワード（確認）
+          <div class="password-row">
+            <input type="password" id="force-change-password2" required minlength="8" autocomplete="new-password">
+            <button type="button" id="toggle-force-change-password2" class="btn btn-ghost btn-small">👁 表示</button>
+          </div>
+        </label>
+        <button type="submit" id="btn-force-change" class="btn btn-amber btn-block">このパスワードに設定する</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= アプリ本体 ================= -->
+<div id="app-shell" hidden>
+
+<div class="account-bar">
+  <span class="account-nickname">👤 <span id="header-nickname"></span> さん</span>
+  <button id="btn-open-settings" class="btn btn-ghost btn-small" type="button" title="設定">⚙ 設定</button>
+</div>
 
 <header class="site">
   <h1>「私の街の歴史」写真重ね合わせツール</h1>
@@ -451,6 +664,52 @@ footer.site{
 <footer class="site">
   写真はお使いの端末内だけで処理され、サーバーには送信されません。 ｜ 「私の街の歴史」写真重ね合わせツール
 </footer>
+
+</div><!-- /#app-shell -->
+
+<!-- ================= 設定パネル ================= -->
+<div id="settings-overlay" class="modal-overlay" hidden>
+  <div class="modal">
+    <button class="modal-close" id="btn-close-settings" type="button" aria-label="閉じる">×</button>
+    <h3>設定</h3>
+
+    <form id="form-settings-nickname">
+      <label class="form-label">
+        ニックネーム
+        <input type="text" id="settings-nickname" required maxlength="20">
+      </label>
+      <button type="submit" class="btn btn-moss btn-block">ニックネームを変更</button>
+    </form>
+
+    <hr class="settings-divider">
+
+    <form id="form-settings-password">
+      <label class="form-label">
+        新しいパスワード
+        <div class="password-row">
+          <input type="password" id="settings-new-password" required minlength="8" autocomplete="new-password">
+          <button type="button" id="toggle-settings-password" class="btn btn-ghost btn-small">👁 表示</button>
+        </div>
+      </label>
+      <label class="form-label">
+        新しいパスワード（確認）
+        <div class="password-row">
+          <input type="password" id="settings-new-password2" required minlength="8" autocomplete="new-password">
+          <button type="button" id="toggle-settings-password2" class="btn btn-ghost btn-small">👁 表示</button>
+        </div>
+      </label>
+      <button type="submit" class="btn btn-moss btn-block">パスワードを変更</button>
+    </form>
+
+    <hr class="settings-divider">
+
+    <button id="btn-logout" class="btn btn-ghost btn-block">ログアウト</button>
+    <button id="btn-withdraw" class="btn btn-ghost btn-block btn-danger-text">退会する</button>
+  </div>
+</div>
+
+<!-- 通知トースト -->
+<div id="toast" class="toast" hidden></div>
 
 <script>
 'use strict';
@@ -710,5 +969,8 @@ els.overlayStage.style.setProperty('--alpha', '0.5');
 
 render();
 </script>
+
+<!-- ===== 会員認証ロジック ===== -->
+<script src="auth.js"></script>
 </body>
 </html>
