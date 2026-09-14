@@ -56,11 +56,6 @@ function renderGalleryItem(container, photo) {
 
   item.appendChild(buildCompareViewer(photo.oldPhotoUrl, photo.newPhotoUrl));
 
-  const captionBox = document.createElement('div');
-  captionBox.className = 'caption-box';
-  captionBox.innerHTML = `<div class="caption-heading">AIが見つけた変化</div>${escapeHtml(photo.caption)}`;
-  item.appendChild(captionBox);
-
   if (photo.userComment) {
     const userBox = document.createElement('div');
     userBox.className = 'caption-box';
@@ -121,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitBtn = document.getElementById('uploadSubmitBtn');
     submitBtn.disabled = true;
-    setMsg('uploadMsg', 'アップロード中...AIが変化を分析しています', '');
+    setMsg('uploadMsg', 'アップロード中...', '');
 
     try {
       const [oldBase64, newBase64] = await Promise.all([fileToBase64(oldFile), fileToBase64(newFile)]);
