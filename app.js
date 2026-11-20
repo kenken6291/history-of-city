@@ -559,8 +559,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('myLocationBtn').addEventListener('click', useMyLocation);
   document.getElementById('clearLocationBtn').addEventListener('click', clearPickedLocation);
 
+  // ブラウザの自動入力（メールアドレス等）が検索欄に入らないようにする
+  const searchInput = document.getElementById('gallerySearch');
+  const unlockSearch = () => searchInput.removeAttribute('readonly');
+  searchInput.addEventListener('focus', unlockSearch, { once: true });
+  searchInput.addEventListener('pointerdown', unlockSearch, { once: true });
+  setTimeout(() => {
+    if (searchInput.value.includes('@')) { searchInput.value = ''; renderGallery(); }
+  }, 800);
+
   let searchTimer;
-  document.getElementById('gallerySearch').addEventListener('input', () => {
+  searchInput.addEventListener('input', () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(renderGallery, 200);
   });

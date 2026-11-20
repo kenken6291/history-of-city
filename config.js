@@ -7,7 +7,7 @@
  */
 window.APP_CONFIG = {
   APP_NAME: '私の街の歴史',
-  APP_VERSION: '2.0.0',
+  APP_VERSION: '2.0.1',
   RELEASE_DATE: '2026-11-21',
 
   // デプロイしたGASウェブアプリのURL（末尾 /exec）
@@ -26,6 +26,13 @@ window.APP_CONFIG = {
 
   // バージョン情報モーダルに表示する更新履歴（新しい順）
   CHANGELOG: [
+    {
+      version: '2.0.1',
+      date: '2026-11-21',
+      items: [
+        '「みんなの投稿」の検索欄にブラウザがメールアドレスを自動入力してしまう問題を直しました'
+      ]
+    },
     {
       version: '2.0.0',
       date: '2026-11-21',

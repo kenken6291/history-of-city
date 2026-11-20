@@ -53,7 +53,7 @@ gas/Code.gs    GASバックエンド（GitHub Pagesには不要。GASエディ�
 
 ## バージョンを上げるとき
 1. `config.js` の `APP_VERSION` `RELEASE_DATE` `CHANGELOG` を更新
-2. `index.html` の `?v=2.0.0`（4か所）を同じ番号にそろえる（ブラウザのキャッシュ対策）
+2. `index.html` の `?v=2.0.1`（4か所）を同じ番号にそろえる（ブラウザのキャッシュ対策）
 3. GAS側を変えたときは `Code.gs` の `API_VERSION` も更新して再デプロイ
 
 ## 動作フロー
