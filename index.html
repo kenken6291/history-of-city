@@ -4,10 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>私の街の歴史 - 写真重ね合わせ</title>
+<meta name="description" content="昔の写真と今の風景をスライダーで見比べ、まちの変化をみんなで記録するサイトです。">
+<meta name="theme-color" content="#8C5A32">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='16' height='32' fill='%238C5A32'/%3E%3Crect x='16' width='16' height='32' fill='%232F5C56'/%3E%3Crect x='15' width='2' height='32' fill='%23ECE6D8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2.0.0">
 </head>
 <body>
 
@@ -15,142 +20,236 @@
   <button type="button" class="site-header__half site-header__half--past" data-scroll-target="uploadSection">
     <div>
       <p class="site-header__title">私の街の歴史</p>
-      <p class="site-header__sub">昔の写真 × 今の風景</p>
+      <p class="site-header__sub">昔の写真 × 今の風景 ／ 投稿する</p>
     </div>
   </button>
   <button type="button" class="site-header__half site-header__half--now" data-scroll-target="gallerySection">
     <div>
-      <p class="site-header__title" style="visibility:hidden;">私の街の歴史</p>
-      <p class="site-header__sub">スライダーで見比べる、まちの変化</p>
+      <p class="site-header__title site-header__title--ghost" aria-hidden="true">私の街の歴史</p>
+      <p class="site-header__sub">スライダーで見比べる、まちの変化 ／ 見る</p>
     </div>
   </button>
 </header>
 
-<div class="member-bar" id="memberBar">
-  <span id="loginOpenBtn">ログイン</span>
-  <span id="registerOpenBtn">会員登録</span>
-</div>
+<nav class="member-bar">
+  <div class="member-bar__nav">
+    <a href="#uploadSection">投稿</a>
+    <a href="#mapSection">マップ</a>
+    <a href="#gallerySection">みんなの投稿</a>
+  </div>
+  <div class="member-bar__user" id="memberBar"></div>
+</nav>
 
 <main>
 
   <section id="uploadSection">
     <h2 class="section-title">写真を投稿する</h2>
-    <form class="upload-form" id="uploadForm">
-      <label>
-        場所の名前
-        <input type="text" id="locationName" placeholder="例：〇〇商店街、△△駅前" required>
-      </label>
-      <label>
-        地図で場所を選択（クリックでピン留め）
-        <div id="locationPicker" style="height:260px; border:1px solid var(--line);"></div>
-        <span id="pickedLocationText" style="font-size:0.78rem; color:#5c5648;">未選択</span>
+    <form class="upload-form" id="uploadForm" novalidate>
+      <div class="form-row">
+        <label>
+          <span class="field__label">場所の名前 <em class="req">必須</em></span>
+          <input type="text" id="locationName" placeholder="例：〇〇商店街、△△駅前" maxlength="60" required>
+        </label>
+        <label>
+          <span class="field__label">昔の写真の年代 <span class="opt">任意</span></span>
+          <input type="text" id="oldYear" placeholder="例：1965年頃、昭和40年代" maxlength="30">
+        </label>
+      </div>
+
+      <div class="field">
+        <span class="field__label">撮影場所 <span class="opt">任意・地図をクリックでピン留め</span></span>
+        <div class="map-search">
+          <input type="text" id="placeSearchInput" placeholder="住所や地名で検索（例：川崎駅）">
+          <button type="button" class="btn btn--ghost btn--sm" id="placeSearchBtn">検索</button>
+          <button type="button" class="btn btn--ghost btn--sm" id="myLocationBtn">現在地</button>
+        </div>
+        <div id="locationPicker" class="map map--picker"></div>
+        <div class="picked-row">
+          <span id="pickedLocationText">未選択</span>
+          <button type="button" class="link-btn" id="clearLocationBtn" hidden>ピンを外す</button>
+        </div>
         <input type="hidden" id="latitudeInput">
         <input type="hidden" id="longitudeInput">
-      </label>
+      </div>
+
+      <div class="form-row">
+        <label class="file-drop" id="oldDrop">
+          <span class="file-drop__title">昔の写真 <em class="req">必須</em></span>
+          <input type="file" id="oldPhotoInput" accept="image/*">
+          <img class="file-drop__thumb" id="oldThumb" alt="" hidden>
+          <span class="file-drop__hint" id="oldHint">タップして選択</span>
+        </label>
+        <label class="file-drop file-drop--now" id="newDrop">
+          <span class="file-drop__title">現在の写真 <em class="req">必須</em></span>
+          <input type="file" id="newPhotoInput" accept="image/*">
+          <img class="file-drop__thumb" id="newThumb" alt="" hidden>
+          <span class="file-drop__hint" id="newHint">同じ場所・同じ角度で撮影</span>
+        </label>
+      </div>
+
+      <div class="preview-box" id="previewBox" hidden>
+        <p class="preview-box__title">投稿前プレビュー（スライダーを動かして確認できます）</p>
+        <div id="previewViewer"></div>
+      </div>
+
       <label>
-        昔の写真
-        <input type="file" id="oldPhotoInput" accept="image/*" required>
+        <span class="field__label">コメント <span class="opt">任意</span></span>
+        <textarea id="userComment" placeholder="思い出や気づいたことなど" maxlength="500"></textarea>
       </label>
-      <label>
-        現在の写真（同じ場所・同じ角度で撮影）
-        <input type="file" id="newPhotoInput" accept="image/*" required>
-      </label>
-      <label>
-        コメント（任意）
-        <textarea id="userComment" placeholder="思い出や気づいたことなど"></textarea>
-      </label>
-      <button type="submit" class="btn btn--past" id="uploadSubmitBtn">投稿する（要ログイン）</button>
-      <p class="modal-msg" id="uploadMsg"></p>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--past" id="uploadSubmitBtn">投稿する</button>
+        <span class="login-hint" id="uploadLoginHint">※投稿にはログインが必要です</span>
+      </div>
+      <p class="modal-msg" id="uploadMsg" role="status"></p>
+      <p class="privacy-note">投稿した写真はGoogleドライブに保存され、このサイトで公開されます。人の顔や車のナンバーなどが写っている場合はご注意ください。</p>
     </form>
   </section>
 
   <section id="mapSection">
     <h2 class="section-title">投稿マップ</h2>
-    <div id="photoMap" style="height:360px; border:1px solid var(--ink);"></div>
+    <div id="photoMap" class="map map--photos"></div>
   </section>
 
   <section id="gallerySection">
     <h2 class="section-title">みんなの投稿</h2>
-    <div id="galleryList">読み込み中...</div>
+    <div class="gallery-toolbar">
+      <input type="search" id="gallerySearch" placeholder="場所・コメント・投稿者で絞り込み">
+      <select id="gallerySort" aria-label="並べ替え">
+        <option value="new">新しい順</option>
+        <option value="old">古い順</option>
+        <option value="place">場所の名前順</option>
+      </select>
+      <button type="button" class="btn btn--ghost btn--sm" id="galleryReloadBtn">再読み込み</button>
+      <span class="gallery-count" id="galleryCount"></span>
+    </div>
+    <div id="galleryList"><p class="loading">読み込み中…</p></div>
   </section>
 
 </main>
 
+<footer class="site-footer">
+  <p class="site-footer__name">私の街の歴史</p>
+  <button type="button" class="version-badge" id="versionBtn">
+    <span id="footerVersion">v-</span>
+    <span class="version-badge__api" id="footerApiVersion">API 確認中…</span>
+  </button>
+  <p class="site-footer__copy">地図 &copy; OpenStreetMap contributors</p>
+</footer>
+
+<!-- トースト -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <!-- ログインモーダル -->
 <div class="modal-overlay" id="loginModal">
-  <div class="modal-box">
-    <h2>ログイン</h2>
-    <label>メールアドレス<input type="text" id="loginEmail"></label>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <h2 id="loginTitle">ログイン</h2>
+    <label>メールアドレス<input type="email" id="loginEmail" autocomplete="email"></label>
     <label>パスワード
       <span class="password-field">
-        <input type="password" id="loginPassword">
+        <input type="password" id="loginPassword" autocomplete="current-password">
         <button type="button" class="password-toggle" data-target="loginPassword">表示</button>
       </span>
     </label>
-    <button class="btn btn--now" id="loginSubmitBtn">ログイン</button>
+    <button class="btn btn--now" id="loginSubmitBtn" data-enter-for="loginModal">ログイン</button>
     <p class="modal-msg" id="loginMsg"></p>
     <div class="modal-links">
       <a id="toRegisterLink">会員登録はこちら</a>
       <a id="toReissueLink">パスワードを忘れた方</a>
     </div>
-    <div class="modal-links"><a id="closeLoginLink">閉じる</a></div>
+    <div class="modal-links"><a data-close>閉じる</a></div>
   </div>
 </div>
 
 <!-- 会員登録モーダル -->
 <div class="modal-overlay" id="registerModal">
-  <div class="modal-box">
-    <h2>会員登録</h2>
-    <label>メールアドレス<input type="text" id="registerEmail"></label>
-    <label>ニックネーム<input type="text" id="registerNickname"></label>
-    <button class="btn btn--now" id="registerSubmitBtn">登録する</button>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+    <h2 id="registerTitle">会員登録</h2>
+    <p class="modal-note">登録したメールアドレスに仮パスワードが届きます。</p>
+    <label>メールアドレス<input type="email" id="registerEmail" autocomplete="email"></label>
+    <label>ニックネーム（20文字まで・公開されます）<input type="text" id="registerNickname" maxlength="20" autocomplete="nickname"></label>
+    <button class="btn btn--now" id="registerSubmitBtn" data-enter-for="registerModal">登録する</button>
     <p class="modal-msg" id="registerMsg"></p>
-    <div class="modal-links"><a id="closeRegisterLink">閉じる</a></div>
+    <div class="modal-links">
+      <a id="toLoginLink">ログインはこちら</a>
+      <a data-close>閉じる</a>
+    </div>
   </div>
 </div>
 
 <!-- 初回パスワード変更モーダル -->
-<div class="modal-overlay" id="forceChangeModal">
-  <div class="modal-box">
-    <h2>初回ログイン：パスワード変更</h2>
-    <p style="font-size:0.82rem;">仮パスワードでのログインです。新しいパスワードを設定してください。</p>
+<div class="modal-overlay" id="forceChangeModal" data-locked>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="forceTitle">
+    <h2 id="forceTitle">初回ログイン：パスワード変更</h2>
+    <p class="modal-note">仮パスワードでのログインです。新しいパスワード（6文字以上）を設定してください。</p>
     <label>新しいパスワード
       <span class="password-field">
-        <input type="password" id="newPasswordInput">
+        <input type="password" id="newPasswordInput" autocomplete="new-password">
         <button type="button" class="password-toggle" data-target="newPasswordInput">表示</button>
       </span>
     </label>
-    <button class="btn btn--now" id="forceChangeSubmitBtn">変更する</button>
+    <label>新しいパスワード（確認）
+      <input type="password" id="newPasswordConfirm" autocomplete="new-password">
+    </label>
+    <button class="btn btn--now" id="forceChangeSubmitBtn" data-enter-for="forceChangeModal">変更する</button>
     <p class="modal-msg" id="forceChangeMsg"></p>
   </div>
 </div>
 
 <!-- パスワード再発行モーダル -->
 <div class="modal-overlay" id="reissueModal">
-  <div class="modal-box">
-    <h2>パスワード再発行</h2>
-    <label>メールアドレス<input type="text" id="reissueEmail"></label>
-    <button class="btn btn--now" id="reissueSubmitBtn">再発行する</button>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="reissueTitle">
+    <h2 id="reissueTitle">パスワード再発行</h2>
+    <p class="modal-note">登録済みのメールアドレスに新しい仮パスワードを送ります。</p>
+    <label>メールアドレス<input type="email" id="reissueEmail" autocomplete="email"></label>
+    <button class="btn btn--now" id="reissueSubmitBtn" data-enter-for="reissueModal">再発行する</button>
     <p class="modal-msg" id="reissueMsg"></p>
-    <div class="modal-links"><a id="closeReissueLink">閉じる</a></div>
+    <div class="modal-links"><a data-close>閉じる</a></div>
   </div>
 </div>
 
-<!-- マイページモーダル（ニックネーム変更・退会） -->
+<!-- マイページモーダル -->
 <div class="modal-overlay" id="myPageModal">
-  <div class="modal-box">
-    <h2>マイページ</h2>
-    <label>ニックネーム<input type="text" id="myNicknameInput"></label>
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="myPageTitle">
+    <h2 id="myPageTitle">マイページ</h2>
+    <p class="modal-note" id="myEmailText"></p>
+    <label>ニックネーム<input type="text" id="myNicknameInput" maxlength="20"></label>
     <button class="btn btn--now" id="nicknameSubmitBtn">ニックネームを変更</button>
+
+    <details class="modal-details">
+      <summary>パスワードを変更する</summary>
+      <label>現在のパスワード<input type="password" id="curPasswordInput" autocomplete="current-password"></label>
+      <label>新しいパスワード（6文字以上）<input type="password" id="chgPasswordInput" autocomplete="new-password"></label>
+      <button class="btn btn--now" id="passwordChangeBtn">パスワードを変更</button>
+    </details>
+
     <p class="modal-msg" id="myPageMsg"></p>
-    <hr style="border-color: var(--line); margin: 18px 0;">
-    <button class="btn btn--ghost" id="logoutBtn">ログアウト</button>
-    <button class="btn" style="background:var(--danger); color:#fff; margin-left:8px;" id="withdrawBtn">退会する</button>
-    <div class="modal-links"><a id="closeMyPageLink">閉じる</a></div>
+    <hr class="modal-hr">
+    <div class="modal-actions">
+      <button class="btn btn--ghost" id="logoutBtn">ログアウト</button>
+      <button class="btn btn--danger" id="withdrawBtn">退会する</button>
+    </div>
+    <div class="modal-links"><a data-close>閉じる</a></div>
   </div>
 </div>
 
-<script src="auth.js"></script>
-<script src="app.js"></script>
+<!-- バージョン情報モーダル -->
+<div class="modal-overlay" id="versionModal">
+  <div class="modal-box modal-box--wide" role="dialog" aria-modal="true" aria-labelledby="versionTitle">
+    <h2 id="versionTitle">バージョン情報</h2>
+    <table class="version-table">
+      <tr><th>アプリ</th><td id="verApp">-</td></tr>
+      <tr><th>公開日</th><td id="verDate">-</td></tr>
+      <tr><th>サーバー（GAS）</th><td id="verApi">-</td></tr>
+    </table>
+    <h3 class="changelog-title">更新履歴</h3>
+    <div id="changelogList" class="changelog"></div>
+    <div class="modal-links"><a data-close>閉じる</a></div>
+  </div>
+</div>
+
+<script src="config.js?v=2.0.0"></script>
+<script src="auth.js?v=2.0.0"></script>
+<script src="app.js?v=2.0.0"></script>
 </body>
 </html>
